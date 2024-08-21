@@ -32,7 +32,7 @@ def result():
     admin = Article(pub_date=date, name=name, article=article)
     db.session.add(admin)
     db.session.commit()
-    return render_template("bbs_result.html", article=article, name=name, now=date)
+    return render_template("result.html", article=article, name=name, now=date)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
