@@ -34,6 +34,10 @@ def result():
     db.session.commit()
     return render_template("result.html", article=article, name=name, now=date)
 
+with app.app_context():
+    inspector = db.inspect(db.engine)
+    if not inspector.has_table("article"):
+        db.create_all()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
