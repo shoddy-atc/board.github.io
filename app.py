@@ -1,26 +1,24 @@
-from flask import Flask, request, render_template
-from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 import os
+from flask import Flask, request, render_template
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 app = Flask(__name__)
 
 # データベース設定
-db_uri = os.environ.get('DATABASE_URL', 'sqlite:///test.db')
-if db_uri.startswith("postgres://"):
-    db_uri = db_uri.replace("postgres://", "postgresql://", 1)
-app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///test.db')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# モデル定義（変更なし）
 class Thread(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     threadname = db.Column(db.String(80), unique=True)
     articles = db.relationship('Article', backref='thread', lazy=True)
-
-    def __init__(self, threadname, articles=[]):
-        self.threadname = threadname
-        self.articles = articles
 
 class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -29,12 +27,12 @@ class Article(db.Model):
     article = db.Column(db.Text())
     thread_id = db.Column(db.Integer, db.ForeignKey('thread.id'), nullable=False)
 
-    def __init__(self, pub_date, name, article, thread_id):
-        self.pub_date = pub_date
-        self.name = name
-        self.article = article
-        self.thread_id = thread_id
+# データベース初期化関数
+def init_db():
+    with app.app_context():
+        db.create_all()
 
+# ルートの実装（変更なし）
 @app.route("/")
 def main():
     threads = Thread.query.all()
@@ -45,7 +43,7 @@ def thread():
     thread_get = request.form["thread"]
     thread = Thread.query.filter_by(threadname=thread_get).first()
     if not thread:
-        thread = Thread(thread_get)
+        thread = Thread(threadname=thread_get)
         db.session.add(thread)
         db.session.commit()
     articles = Article.query.filter_by(thread_id=thread.id).all()
@@ -58,16 +56,14 @@ def result():
     name = request.form["name"]
     thread_name = request.form["thread"]
     thread = Thread.query.filter_by(threadname=thread_name).first()
-    admin = Article(pub_date=date, name=name, article=article, thread_id=thread.id)
-    db.session.add(admin)
+    new_article = Article(pub_date=date, name=name, article=article, thread_id=thread.id)
+    db.session.add(new_article)
     db.session.commit()
     return render_template("result.html", article=article, name=name, now=date)
-
-def init_db():
-    with app.app_context():
-        db.create_all()
 
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port)
+else:
+    init_db()
