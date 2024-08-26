@@ -49,7 +49,7 @@ def thread():
     articles = Article.query.filter_by(thread_id=thread.id).all()
     return render_template("thread.html", articles=articles, thread=thread_get)
 
-@app.route("/result", methods=["POST"])
+@app.route("/", methods=['GET', 'POST'])
 def result():
     date = datetime.now()
     article = request.form["article"]
